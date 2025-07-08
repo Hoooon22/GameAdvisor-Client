@@ -43,6 +43,8 @@ public class SpeechBubble extends Group {
     private Runnable onCloseCallback;
     private boolean isMinimized = false;
     private String currentMessage = "";
+    private Button refreshButton; // 새로고침 버튼 추가
+    private Runnable onRefreshCallback; // 새로고침 콜백
     
     // 말풍선 크기 설정
     private static final int MIN_WIDTH = 200;
@@ -53,6 +55,7 @@ public class SpeechBubble extends Group {
     
     public SpeechBubble() {
         initializeBubble();
+        initializeRefreshButton();
     }
     
     /**
@@ -352,6 +355,45 @@ public class SpeechBubble extends Group {
         // 기본적으로 숨김
         this.setVisible(false);
         this.setOpacity(0.0);
+    }
+    
+    private void initializeRefreshButton() {
+        refreshButton = new Button("🔄 새로고침");
+        refreshButton.setPrefSize(90, 28);
+        refreshButton.setStyle(
+            "-fx-background-color: rgba(30,144,255,0.85); " +
+            "-fx-text-fill: white; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: bold; " +
+            "-fx-background-radius: 14; " +
+            "-fx-border-radius: 14; " +
+            "-fx-border-color: rgba(30,120,255,0.6); " +
+            "-fx-border-width: 1px; " +
+            "-fx-cursor: hand; " +
+            "-fx-padding: 0; " +
+            "-fx-effect: dropshadow(gaussian, black, 2, 0.6, 1, 1);"
+        );
+        refreshButton.setVisible(false);
+        refreshButton.setManaged(false);
+        refreshButton.setOnAction(e -> {
+            if (onRefreshCallback != null) onRefreshCallback.run();
+        });
+        // StackPane 우측 하단에 위치
+        StackPane.setAlignment(refreshButton, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(refreshButton, new Insets(0, 10, 10, 0));
+        bubbleContainer.getChildren().add(refreshButton);
+    }
+
+    public void showRefreshButton(Runnable onRefresh) {
+        this.onRefreshCallback = onRefresh;
+        refreshButton.setVisible(true);
+        refreshButton.setManaged(true);
+    }
+
+    public void hideRefreshButton() {
+        refreshButton.setVisible(false);
+        refreshButton.setManaged(false);
+        this.onRefreshCallback = null;
     }
     
     /**

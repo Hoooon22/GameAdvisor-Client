@@ -45,6 +45,8 @@ public class GameAdvisorClient extends Application {
     private List<Game> knownGames = new ArrayList<>();
     private CharacterOverlay characterOverlay;
     private Stage overlayStage;
+    private volatile boolean keepTryingServer = false;
+    private Thread serverRetryThread;
 
     @Override
     public void start(Stage primaryStage) {
@@ -59,6 +61,8 @@ public class GameAdvisorClient extends Application {
                 javafx.application.Platform.runLater(() -> {
                     if (knownGames.isEmpty()) {
                         updateStatusWindow(primaryStage, "서버에서 게임 목록을 불러오지 못했습니다.\n서버가 실행 중인지 확인하세요.");
+                        // 서버 연결 재시도 루프 시작
+                        startServerRetryLoop(primaryStage);
                     } else {
                         updateStatusWindow(primaryStage, "게임 탐지 대기 중...\n게임을 실행해주세요!");
                         startGameDetection(primaryStage);
@@ -68,6 +72,8 @@ public class GameAdvisorClient extends Application {
                 e.printStackTrace();
                 javafx.application.Platform.runLater(() -> {
                     updateStatusWindow(primaryStage, "서버 연결 오류\n" + e.getMessage());
+                    // 서버 연결 재시도 루프 시작
+                    startServerRetryLoop(primaryStage);
                 });
             }
         }).start();
@@ -237,6 +243,52 @@ public class GameAdvisorClient extends Application {
                 overlayStage.close();
             }
         });
+    }
+
+    private void startServerRetryLoop(Stage primaryStage) {
+        if (serverRetryThread != null && serverRetryThread.isAlive()) return;
+        keepTryingServer = true;
+        serverRetryThread = new Thread(() -> {
+            ApiClient apiClient = new ApiClient();
+            while (keepTryingServer) {
+                boolean connected = apiClient.ping();
+                if (connected) {
+                    javafx.application.Platform.runLater(() -> {
+                        if (characterOverlay != null) {
+                            characterOverlay.hideServerDisconnected();
+                        }
+                        // 서버 연결 성공 시 게임 탐지 시작
+                        updateStatusWindow(primaryStage, "게임 탐지 대기 중...\n게임을 실행해주세요!");
+                        startGameDetection(primaryStage);
+                    });
+                    keepTryingServer = false;
+                    break;
+                } else {
+                    javafx.application.Platform.runLater(() -> {
+                        if (characterOverlay == null) {
+                            createGameOverlay();
+                        }
+                        characterOverlay.showServerDisconnected(() -> {
+                            // 새로고침 버튼 클릭 시 즉시 재시도
+                            new Thread(() -> {
+                                boolean reconnected = apiClient.ping();
+                                if (reconnected) {
+                                    javafx.application.Platform.runLater(() -> {
+                                        characterOverlay.hideServerDisconnected();
+                                        updateStatusWindow(primaryStage, "게임 탐지 대기 중...\n게임을 실행해주세요!");
+                                        startGameDetection(primaryStage);
+                                    });
+                                    keepTryingServer = false;
+                                }
+                            }).start();
+                        });
+                    });
+                }
+                try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+            }
+        });
+        serverRetryThread.setDaemon(true);
+        serverRetryThread.start();
     }
 
     public static void main(String[] args) {

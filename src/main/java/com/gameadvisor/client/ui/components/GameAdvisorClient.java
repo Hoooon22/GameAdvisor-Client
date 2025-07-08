@@ -22,7 +22,7 @@ public class GameAdvisorClient {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    URL url = new URL("http://localhost:8080/api/gemini-test");
+                    URL url = new URL("http://192.168.75.232:8080/api/gemini-test");
                     HttpURLConnection con = (HttpURLConnection) url.openConnection();
                     con.setRequestMethod("GET");
                     BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));

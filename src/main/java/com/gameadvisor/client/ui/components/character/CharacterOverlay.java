@@ -66,6 +66,9 @@ public class CharacterOverlay {
     private static final double AVOIDANCE_DISTANCE = 150; // 클릭으로부터 피하는 거리
     private static final long AVOIDANCE_DURATION = 3000; // 3초간 클릭 위치 기억
     
+    // 서버 연결 상태 표시용
+    private boolean serverDisconnected = false;
+    
     public CharacterOverlay(Pane overlayPane) {
         this.overlayPane = overlayPane;
         this.apiClient = new ApiClient();
@@ -1165,6 +1168,28 @@ public class CharacterOverlay {
      */
     public boolean isCharacterActive() {
         return isCharacterActive;
+    }
+    
+    /**
+     * 서버 연결 실패 시 경고 메시지와 새로고침 버튼 표시
+     */
+    public void showServerDisconnected(Runnable onRefresh) {
+        serverDisconnected = true;
+        if (speechBubble != null) {
+            speechBubble.showMessage("❌ 서버에 연결할 수 없습니다.\n네트워크 상태를 확인하거나, 새로고침을 시도해 주세요.", SpeechBubble.BubbleType.WARNING);
+            speechBubble.showRefreshButton(onRefresh);
+        }
+    }
+
+    /**
+     * 서버 연결 성공 시 경고 메시지/버튼 숨김
+     */
+    public void hideServerDisconnected() {
+        if (serverDisconnected && speechBubble != null) {
+            speechBubble.hideRefreshButton();
+            speechBubble.hide();
+            serverDisconnected = false;
+        }
     }
     
     /**

@@ -13,7 +13,7 @@ import com.gameadvisor.client.model.ScreenAnalysisResponse;
 public class ApiClient {
     private final OkHttpClient client;
     private final ObjectMapper mapper = new ObjectMapper();
-    private static final String BASE_URL = "http://localhost:8080/api";
+    private static final String BASE_URL = "http://192.168.75.232:8080/api";
 
     public ApiClient() {
         // 타임아웃 설정을 늘려서 이미지 분석 요청을 처리할 수 있도록 함
@@ -59,6 +59,18 @@ public class ApiClient {
             
             String responseBody = response.body().string();
             return mapper.readValue(responseBody, ScreenAnalysisResponse.class);
+        }
+    }
+
+    /**
+     * 서버 연결 상태 확인 (ping)
+     */
+    public boolean ping() {
+        Request request = new Request.Builder().url(BASE_URL + "/games").head().build();
+        try (Response response = client.newCall(request).execute()) {
+            return response.isSuccessful();
+        } catch (Exception e) {
+            return false;
         }
     }
 } 
